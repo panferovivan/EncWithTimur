@@ -18,7 +18,7 @@ void encrypt_meccage(const char *plan_text, const char *output_file, const char 
     for (size_t i=0; i< text_len; i++ )
     {
         unsigned char key_byte = get_next_key_byte(&ctx);
-        unsigned char encrypt_byte = plan_text[i] ^ key_byte;
+        unsigned char encrypted_byte = plan_text[i] ^ key_byte;
         fwrite (&encrypted_byte, sizeof(unsigned char), 1, file);
     }
     fclose(file);
@@ -70,7 +70,14 @@ viod crypto_operation(FILE *input_file, FILE *output_file, const char *password)
 
 void clear_memory(void *ptr, size_t size)
 {
+    if (ptr == NULL) return;
+    memset (ptr, 0, size);
 
+    volatile unsigned char *vol_ptr = (volatile unsigned char *) ptr;
+    for (size_t i=0; i<size; i++)
+    {
+        vol_ptr[i]=0;
+    }
 }
 
 int main()
