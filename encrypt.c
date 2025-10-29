@@ -2,7 +2,7 @@
 
 void encrypt_meccage(const char *plan_text, const char *output_file, const char *password)
 {
-    unit32_t seed = generate_seed (password);
+    uint32_t seed = generate_seed (password);
     crypto_ctx_t ctx;
     init_key_gen(&ctx, seed);
 
@@ -34,9 +34,9 @@ void decrypt_and_display(const char *input_file, const char *password)
     printf("функиця дешифрования \n");
 }
 
-unit32_t generate_seed(const char *password)
+uint32_t generate_seed(const char *password)
 {
-    unit32_t seed = 0;
+    uint32_t seed = 0;
     while (*password != '\0')
     {
         seed = (seed << 5 ) + seed + (unsigned char)*password;
@@ -45,7 +45,7 @@ unit32_t generate_seed(const char *password)
     return seed;
 }
 
-void init_key_gen(crypto_ctx_t *ctx, unit32_t seed)
+void init_key_gen(crypto_ctx_t *ctx, uint32_t seed)
 {
     ctx->state = seed;
 
@@ -63,9 +63,37 @@ unsigned char get_next_key_byte(crypto_ctx_t *ctx)
     return (unsigned char) (ctx->state & 0xFF);
 }
 
-viod crypto_operation(FILE *input_file, FILE *output_file, const char *password)
+viod crypto_operation(FILE *input_file, FILE *output_file, const char *password, int mode)
 {
-    
+    //mode: 0 - шифрование, 1 - дешифрование
+    uint32_t seed = generate_seed(password);
+    crypto_ctx_t ctx;
+    init_key_gen(&ctx, seed);
+//в шифровании сначала записываем размер файла
+    if (mode == 0)
+    {
+        fseek(input_file, 0, SEEK_END);
+        long file_size = ftell (input_file);
+        fseek(input_file, 0, SEEK_SET);
+        fwrite(&file_size, sizeof(long), 1, output_file);
+    }
+    // в дешифровании: читаем размер
+    else
+    {
+        long file_size;
+        fread(&file_size, sizeof(long), 1, input_file);
+    }
+
+    int ch;
+    while ((ch = fgetc(input_file)) != E0F)
+    {
+        unsigned char key_byte = get_next_key_byte(&ctx);
+        unsigned char processed_byte = ch^key_byte;
+        fputc(processed_byte, output_file);
+    }
+    clear_memory(&seed, sizeof(seed));
+    clear_memory(&ctx, sizeof(ctx));
+
 }
 
 void clear_memory(void *ptr, size_t size)
